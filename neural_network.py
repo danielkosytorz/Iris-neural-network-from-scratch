@@ -3,7 +3,7 @@
 
 # ### Importing
 
-# In[86]:
+# In[104]:
 
 
 import random
@@ -16,13 +16,13 @@ import time
 
 # ### Iris dataset
 
-# In[87]:
+# In[105]:
 
 
 iris = pd.read_csv('iris.csv')
 
 
-# In[88]:
+# In[106]:
 
 
 class DataProcessing:
@@ -76,7 +76,7 @@ class DataProcessing:
         
 
 
-# In[89]:
+# In[107]:
 
 
 irisNormalized = DataProcessing.normalize(iris)
@@ -86,7 +86,7 @@ irisMixedTrain, irisMixedVal = DataProcessing.splitSet(irisMixed)
 
 # ### Classes Particle, PSO
 
-# In[90]:
+# In[108]:
 
 
 class Particle:
@@ -160,15 +160,20 @@ class PSO:
                 
                 net = NeuralNetwork()
                 
-                # creating layers with weights from particles
-                dense1 = DenseLayer(4, 3)
-                dense1.weights = self.particles[i].particle_position[:12]
-                dense1.weights = np.array(dense1.weights).reshape((3, 4))
+                input_neurons = 4
+                hidden_layers_neurons = [8]
+                output_neurons = 3
+        
+#                creating layers with weights from particles
+                dense1 = DenseLayer(input_neurons, hidden_layers_neurons[0])
+                dense1.weights = self.particles[i].particle_position[:input_neurons * hidden_layers_neurons[0]]
+                dense1.weights = np.array(dense1.weights).reshape((hidden_layers_neurons[0], input_neurons))
 #                 dense1.bias = np.array(self.particles[i].particle_position[21:24]).reshape((1, 3))
             
-                dense2 = DenseLayer(3, 3)
-                dense2.weights = self.particles[i].particle_position[12:21]
-                dense2.weights = np.array(dense2.weights).reshape((3, 3))
+                dense2 = DenseLayer(hidden_layers_neurons[0], output_neurons)
+                dense2.weights = self.particles[i].particle_position[input_neurons * hidden_layers_neurons[0]:input_neurons * hidden_layers_neurons[0] + 
+                                                                    hidden_layers_neurons[0] * output_neurons]
+                dense2.weights = np.array(dense2.weights).reshape((output_neurons, hidden_layers_neurons[0]))
 #                 dense2.bias = np.array(self.particles[i].particle_position[24:]).reshape((1, 3))
             
                 net.add_layer(dense1)
@@ -198,7 +203,7 @@ def mse(X, y): # mean squred error for one sample
 
 # ## Neural Network
 
-# In[91]:
+# In[109]:
 
 
 class DenseLayer:
@@ -213,6 +218,7 @@ class DenseLayer:
     
     def forward(self, inputs):
         self.output = np.dot(inputs, np.array(self.weights).T) + self.bias
+        self.activation_tanh(self.output)
     
     def softmax(self, inputs):
         exp_values = np.exp(inputs - np.max(inputs, axis=1, keepdims=True))
@@ -237,6 +243,7 @@ class NeuralNetwork:
             self.layers[k].forward(X)
             X = self.layers[k].output
 
+
         output_layer = self.layers[-1]
         output_layer.activation_tanh(output_layer.output)
         
@@ -246,24 +253,24 @@ class NeuralNetwork:
 
 # ### Parameters
 
-# In[92]:
+# In[110]:
 
 
 # bounds = [(0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1)]  
 bounds = [] # upper and lower bounds of variables
-nv = 21  # number of variables (weights)
+nv = 56  # number of variables (weights)
 for i in range(nv):
     bounds.append((-1, 1))
     
 # PARAMETERS
 n = 1000  # number of particles
-T = 200  # max number of iterations
+T = 300  # max number of iterations
 # w = 0.75  # inertia constant
 phi1 = 0.3  # cognative constant
 phi2 = 0.8  # social constant
 
 
-# In[93]:
+# In[111]:
 
 
 X = irisMixedTrain.drop(columns=['variety'])
@@ -273,7 +280,7 @@ X_train = X.to_numpy()
 y_train = DataProcessing.one_hot_iris(y)
 
 
-# In[94]:
+# In[112]:
 
 
 start_timer_data = time.perf_counter()
@@ -285,7 +292,7 @@ end_timer_data = time.perf_counter()
 print(f'Training takes: {end_timer_data - start_timer_data}s')
 
 
-# In[95]:
+# In[113]:
 
 
 X_val = irisMixedVal.drop(columns=['variety'])
@@ -295,18 +302,23 @@ X_val = X_val.to_numpy()
 y_val = DataProcessing.one_hot_iris(y_val)
 
 
-# In[96]:
+# In[114]:
 
+
+input_neurons = 4
+hidden_layers_neurons = [8]
+output_neurons = 3
 
 best_net = NeuralNetwork()
 
-dense1 = DenseLayer(4, 3)
-dense1.weights = best_weights[:12]
-dense1.weights = np.array(dense1.weights).reshape((3, 4))
+dense1 = DenseLayer(input_neurons, hidden_layers_neurons[0])
+dense1.weights = best_weights[:input_neurons * hidden_layers_neurons[0]]
+dense1.weights = np.array(dense1.weights).reshape((hidden_layers_neurons[0], input_neurons))
 
-dense2 = DenseLayer(3, 3)
-dense2.weights = best_weights[12:21]
-dense2.weights = np.array(dense2.weights).reshape((3, 3))
+dense2 = DenseLayer(hidden_layers_neurons[0], output_neurons)
+dense2.weights = best_weights[input_neurons * hidden_layers_neurons[0]:input_neurons * hidden_layers_neurons[0] + 
+                                                                    hidden_layers_neurons[0] * output_neurons]
+dense2.weights = np.array(dense2.weights).reshape((output_neurons, hidden_layers_neurons[0]))
 
 best_net.add_layer(dense1)
 best_net.add_layer(dense2)
@@ -328,7 +340,7 @@ print(f'Accuracy = {(corrected / len(y_val))*100}%')
 
 # ## Saving weights
 
-# In[97]:
+# In[115]:
 
 
 # import _pickle as cPickle
@@ -339,14 +351,14 @@ print(f'Accuracy = {(corrected / len(y_val))*100}%')
 
 # ## Loading best weights
 
-# In[98]:
+# In[116]:
 
 
 # with open(r"./weights_87.pickle", "rb") as f:
 #     weights = cPickle.load(f)
 
 
-# In[99]:
+# In[117]:
 
 
 # loaded_net = NeuralNetwork()
